@@ -13,9 +13,11 @@ DEFAULT_CHUNK_SIZE = 500
 DEFAULT_POLL_INTERVAL = 3
 BASE_URL = 'https://cloud.tenable.com'
 
-LOG_DATE_FMT = '%m/%d/%Y %H:%M:%S'
-LOG_FMT = '%(asctime)s[%(levelname)s]:%(message)s'
-logging.basicConfig(format=LOG_FMT, level=logging.INFO, datefmt=LOG_DATE_FMT)
+logging.basicConfig(
+    filename='vuln_exporter.log',
+    format='%(asctime)s[%(levelname)s]:%(message)s',
+    level=logging.INFO
+)
 
 default_config_path = Path(f'{__file__}').parent
 default_config_file = '.env'
@@ -39,24 +41,6 @@ def read_env_file(filename: str) -> dict:
     """Read a simple environment file that contains api_keys and new column header names.
     :param filename
     :returns: dictionary with keys: 'api_keys' and 'rename_fields'
-
-    #  FILE FORMAT:
-    #
-    description:
-        ACCESS_KEY=9a09bb6a...
-        SECRET_KEY=0f262ed9...
-
-    rename_fields:
-        asset.ipv4                   : IP
-        asset.hostname               : Hostname
-        asset.operating_system       : OS
-        plugin.name                  : Vulnerability Title
-        severity                     : Severity
-        plugin.cvss_base_score       : CVSS Score
-        plugin.exploit_available     : Exploit Exists? (YES/NO)
-        state                        : Vulnerability status (Fixed/Active)
-        first_found                  : Date Vuln was detected
-        last_fixed                   : Vuln Remediation date
     """
     keys_dict = dict()
     field_dict = dict()
@@ -150,6 +134,10 @@ def export_to_csv(config_filepath, output_filepath):
     api_keys = config.get('api_keys')
     column_names = config.get('rename_columns')
     logging.debug(f'map column names using {column_names}')
+
+    if not api_keys:
+        logging.error('API keys not found.')
+        raise SystemExit('API keys not found.')
 
     exporter = VulnerabilityExporter(**api_keys)
 
